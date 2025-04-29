@@ -1,0 +1,12 @@
+numpy 
+tensorflow 
+librosa 
+scikit-learn 
+pandas 
+imbalanced-learn 
+yfinance 
+matplotlib 
+Pillow 
+PyWavelets 
+scipy 
+scikit-image
