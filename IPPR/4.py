@@ -1,18 +1,10 @@
-from PIL import Image
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
 def compute_rgb_histogram(image):
     """Compute histograms for R, G, B channels of an RGB image."""
-    # Convert image to numpy array
-    img_array = np.array(image)
-    
-    # Compute histogram for each channel (0-255)
-    hist_r, bins = np.histogram(img_array[:,:,0].ravel(), bins=256, range=(0, 256))
-    hist_g, bins = np.histogram(img_array[:,:,1].ravel(), bins=256, range=(0, 256))
-    hist_b, bins = np.histogram(img_array[:,:,2].ravel(), bins=256, range=(0, 256))
-    
-    return hist_r, hist_g, hist_b
+    return [cv2.calcHist([image], [i], None, [256], [0, 256]).ravel() for i in range(3)]
 
 def plot_rgb_histogram(hist_r, hist_g, hist_b, filename='rgb_histogram.png'):
     """Plot and save the RGB histograms."""
@@ -28,27 +20,9 @@ def plot_rgb_histogram(hist_r, hist_g, hist_b, filename='rgb_histogram.png'):
     plt.savefig(filename)
     plt.close()
 
-def histogram_equalization(gray_image):
-    """Apply histogram equalization to an 8-bit grayscale image."""
-    # Convert grayscale image to numpy array
-    img_array = np.array(gray_image).astype(np.uint8)
-    
-    # Compute histogram and cumulative distribution function (CDF)
-    hist, bins = np.histogram(img_array.ravel(), bins=256, range=(0, 256))
-    cdf = hist.cumsum()
-    cdf_normalized = cdf * 255 / cdf[-1]  # Normalize to 0-255
-    
-    # Apply equalization: map original intensities to new values
-    equalized_array = np.interp(img_array.ravel(), bins[:-1], cdf_normalized)
-    equalized_array = equalized_array.reshape(img_array.shape).astype(np.uint8)
-    
-    return Image.fromarray(equalized_array, mode='L')
-
 def plot_grayscale_histogram(image, filename='grayscale_histogram.png'):
     """Plot and save the histogram of a grayscale image."""
-    img_array = np.array(image).astype(np.uint8)
-    hist, bins = np.histogram(img_array.ravel(), bins=256, range=(0, 256))
-    
+    hist = cv2.calcHist([image], [0], None, [256], [0, 256]).ravel()
     plt.figure(figsize=(10, 6))
     plt.plot(hist, color='gray', label='Grayscale')
     plt.title('Grayscale Histogram')
@@ -60,36 +34,36 @@ def plot_grayscale_histogram(image, filename='grayscale_histogram.png'):
     plt.close()
 
 def main():
-    # Load the input image (replace 'input_image.jpg' with your image path)
     try:
-        input_image = Image.open('input_image.jpg')
+        # Load image (OpenCV uses BGR by default)
+        img = cv2.imread('input_image.jpg')
+        if img is None:
+            raise FileNotFoundError("Input image not found")
         
-        # Verify the image is in RGB mode (24-bit)
-        if input_image.mode != 'RGB':
-            print("Input image is not in RGB mode. Converting to RGB...")
-            input_image = input_image.convert('RGB')
+        # Convert BGR to RGB for histogram
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         # Compute and plot RGB histogram
-        hist_r, hist_g, hist_b = compute_rgb_histogram(input_image)
+        hist_r, hist_g, hist_b = compute_rgb_histogram(img_rgb)
         plot_rgb_histogram(hist_r, hist_g, hist_b, 'output_rgb_histogram.png')
         print("RGB histogram saved as 'output_rgb_histogram.png'")
         
         # Convert to grayscale and plot its histogram
-        gray_image = input_image.convert('L')
-        plot_grayscale_histogram(gray_image, 'output_grayscale_histogram.png')
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        plot_grayscale_histogram(gray_img, 'output_grayscale_histogram.png')
         print("Grayscale histogram saved as 'output_grayscale_histogram.png'")
         
-        # Apply histogram equalization and save the result
-        equalized_image = histogram_equalization(gray_image)
-        equalized_image.save('output_equalized_image.jpg')
+        # Apply histogram equalization and save
+        equalized_img = cv2.equalizeHist(gray_img)
+        cv2.imwrite('output_equalized_image.jpg', equalized_img)
         print("Equalized image saved as 'output_equalized_image.jpg'")
         
         # Plot histogram of equalized image
-        plot_grayscale_histogram(equalized_image, 'output_equalized_histogram.png')
+        plot_grayscale_histogram(equalized_img, 'output_equalized_histogram.png')
         print("Equalized histogram saved as 'output_equalized_histogram.png'")
         
     except FileNotFoundError:
-        print("Error: Input image file not found. Please provide a valid image path.")
+        print("Error: Input image file not found")
     except Exception as e:
         print(f"Error: {str(e)}")
 

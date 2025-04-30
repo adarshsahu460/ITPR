@@ -9,4 +9,5 @@ matplotlib
 Pillow 
 PyWavelets 
 scipy 
+opencv-python
 scikit-image
